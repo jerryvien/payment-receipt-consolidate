@@ -54,11 +54,30 @@ builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 52_428_800);
 
 var app = builder.Build();
 
-// Auto-migrate on startup
+// Auto-create/migrate database on startup
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        if (!string.IsNullOrEmpty(databaseUrl))
+        {
+            // PostgreSQL — create schema directly from model (no SQLite migrations)
+            db.Database.EnsureCreated();
+            logger.LogInformation("PostgreSQL database schema ensured.");
+        }
+        else
+        {
+            // SQLite local dev — use migrations
+            db.Database.Migrate();
+        }
+    }
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "Database initialization failed.");
+        throw;
+    }
 }
 
 if (app.Environment.IsDevelopment())
