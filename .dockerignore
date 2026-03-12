@@ -1,0 +1,11 @@
+**/node_modules
+**/bin
+**/obj
+**/.git
+**/.gitignore
+**/.vscode
+**/dist
+**/uploads
+*.db
+*.db-shm
+*.db-wal

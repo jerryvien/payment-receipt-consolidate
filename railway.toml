@@ -1,0 +1,7 @@
+[deploy]
+startCommand = "dotnet backend.dll"
+healthcheckPath = "/api/claims"
+healthcheckTimeout = 30
+
+[build]
+dockerfilePath = "Dockerfile"
