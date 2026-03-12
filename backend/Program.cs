@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using backend.Data;
 using backend.Services;
 
@@ -63,9 +64,21 @@ using (var scope = app.Services.CreateScope())
     {
         if (!string.IsNullOrEmpty(databaseUrl))
         {
-            // PostgreSQL — create schema directly from model (no SQLite migrations)
+            // PostgreSQL — create schema from model, bypass SQLite migrations
             db.Database.EnsureCreated();
-            logger.LogInformation("PostgreSQL database schema ensured.");
+
+            // If EnsureCreated was no-op (e.g. __EFMigrationsHistory existed from
+            // a prior failed Migrate), force-create missing tables via the creator.
+            var creator = db.GetService<Microsoft.EntityFrameworkCore.Storage.IRelationalDatabaseCreator>();
+            if (!creator.HasTables())
+            {
+                creator.CreateTables();
+                logger.LogInformation("PostgreSQL tables force-created.");
+            }
+            else
+            {
+                logger.LogInformation("PostgreSQL database schema verified.");
+            }
         }
         else
         {
