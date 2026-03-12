@@ -8,9 +8,20 @@ var builder = WebApplication.CreateBuilder(args);
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5062";
 builder.WebHost.UseUrls($"http://+:{port}");
 
-// EF Core + SQLite
-builder.Services.AddDbContext<AppDbContext>(opt =>
-    opt.UseSqlite("Data Source=claims.db"));
+// Database — PostgreSQL in production (Railway), SQLite for local dev
+var databaseUrl = Environment.GetEnvironmentVariable("DATABASE_URL");
+if (!string.IsNullOrEmpty(databaseUrl))
+{
+    // Railway provides postgres://user:pass@host:port/db — convert to Npgsql format
+    var uri = new Uri(databaseUrl);
+    var userInfo = uri.UserInfo.Split(':');
+    var connStr = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
+    builder.Services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(connStr));
+}
+else
+{
+    builder.Services.AddDbContext<AppDbContext>(opt => opt.UseSqlite("Data Source=claims.db"));
+}
 
 // Services
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
