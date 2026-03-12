@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using backend.Data;
 using backend.Services;
 
@@ -16,7 +17,11 @@ if (!string.IsNullOrEmpty(databaseUrl))
     var uri = new Uri(databaseUrl);
     var userInfo = uri.UserInfo.Split(':');
     var connStr = $"Host={uri.Host};Port={uri.Port};Database={uri.AbsolutePath.TrimStart('/')};Username={userInfo[0]};Password={userInfo[1]};SSL Mode=Require;Trust Server Certificate=true";
-    builder.Services.AddDbContext<AppDbContext>(opt => opt.UseNpgsql(connStr));
+    builder.Services.AddDbContext<AppDbContext>(opt =>
+    {
+        opt.UseNpgsql(connStr);
+        opt.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
+    });
 }
 else
 {
